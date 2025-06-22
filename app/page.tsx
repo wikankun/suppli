@@ -138,9 +138,9 @@ export default function HomePage() {
       <div className="container mx-auto p-4 max-w-4xl">
         <div className="space-y-6">
           <div className="text-center px-4">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">Items Search</h1>
+            <h1 className="text-xl md:text-2xl font-bold mb-2">Search or Add Items</h1>
             <p className="text-muted-foreground text-sm md:text-base">
-              Search for items to check stock levels and update inventory
+              Look up for items or add new ones.
             </p>
           </div>
 
@@ -149,7 +149,7 @@ export default function HomePage() {
             <div className="relative">
               <Search className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
               <Input
-                placeholder="Search for items..."
+                placeholder="Search or add items..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-12 h-12 text-md"
@@ -195,7 +195,7 @@ export default function HomePage() {
                 <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">No items found</h3>
                 <p className="text-muted-foreground mb-6 px-4">
-                  Would you like to add "{searchQuery}" to your inventory?
+                  Add "{searchQuery}" to your inventory?
                 </p>
                 <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                   <DialogTrigger asChild>
@@ -205,7 +205,7 @@ export default function HomePage() {
                       onClick={() => setNewItem({ ...newItem, name: searchQuery })}
                     >
                       <Plus className="h-5 w-5 mr-2" />
-                      Add Item
+                      Add "{searchQuery.substring(0, 20)}{searchQuery.length > 20 ? '...' : ''}"
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="mx-4 max-w-sm">

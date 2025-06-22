@@ -95,7 +95,7 @@ export default function SyncPage() {
       <div className="container mx-auto p-4 max-w-4xl">
         <div className="space-y-6">
           <div className="text-center">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">Data Sync</h1>
+            <h1 className="text-xl md:text-2xl font-bold mb-2">Data Sync</h1>
             <p className="text-muted-foreground text-sm md:text-base px-4">
               Export and import your inventory data for backup or sharing
             </p>

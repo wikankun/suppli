@@ -126,7 +126,11 @@ class StockDatabase {
 
   async exportData(): Promise<string> {
     const items = await this.getAllItems()
-    return JSON.stringify(items, null, 2)
+    const cleanedItems = items.map(item => ({
+      ...item,
+      history: []
+    }));
+    return JSON.stringify(cleanedItems, null, 0)
   }
 
   async importData(jsonData: string): Promise<void> {

@@ -62,7 +62,10 @@ export default function ListPage() {
 
     if (stockFilter !== "all") {
       if (stockFilter === "inStock") {
-        filtered = filtered.filter((item) => item.stock > 0)
+        filtered = filtered.filter((item) => item.stock > 3)
+      }
+      if (stockFilter === "lowStock") {
+        filtered = filtered.filter((item) => item.stock > 0 && item.stock <= 3)
       }
       if (stockFilter === "outOfStock") {
         filtered = filtered.filter((item) => item.stock === 0)
@@ -126,7 +129,7 @@ export default function ListPage() {
       <div className="container mx-auto p-4 max-w-4xl">
         <div className="space-y-6">
           <div className="text-center">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">Inventory List</h1>
+            <h1 className="text-xl md:text-2xl font-bold mb-2">Inventory List</h1>
             <p className="text-muted-foreground text-sm md:text-base">
               Complete overview of all items in your inventory
             </p>
@@ -172,6 +175,9 @@ export default function ListPage() {
                     <SelectItem value="all">-- select stock status --</SelectItem>
                     <SelectItem key="inStock" value="inStock">
                       In Stock
+                    </SelectItem>
+                    <SelectItem key="lowStock" value="lowStock">
+                      Running Low
                     </SelectItem>
                     <SelectItem key="outOfStock" value="outOfStock">
                       Out Of Stock
@@ -278,7 +284,7 @@ export default function ListPage() {
 
           {/* Summary Stats */}
           {items.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <Card>
                 <CardContent className="p-4 text-center">
                   <div className="text-xl md:text-2xl font-bold">{items.length}</div>
@@ -287,10 +293,26 @@ export default function ListPage() {
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
+                  <div className="text-xl md:text-2xl font-bold">
+                    {items.reduce((acc, item) => acc + item.stock, 0)}
+                  </div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Total Stock</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
                   <div className="text-xl md:text-2xl font-bold text-green-600">
-                    {items.filter((item) => item.stock > 0).length}
+                    {items.filter((item) => item.stock > 3).length}
                   </div>
                   <div className="text-xs md:text-sm text-muted-foreground">In Stock</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-xl md:text-2xl font-bold text-yellow-600">
+                    {items.filter((item) => (item.stock > 0 && item.stock <= 3)).length}
+                  </div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Running Low</div>
                 </CardContent>
               </Card>
               <Card>
@@ -299,14 +321,6 @@ export default function ListPage() {
                     {items.filter((item) => item.stock === 0).length}
                   </div>
                   <div className="text-xs md:text-sm text-muted-foreground">Out of Stock</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-xl md:text-2xl font-bold">
-                    {items.reduce((acc, item) => acc + item.stock, 0)}
-                  </div>
-                  <div className="text-xs md:text-sm text-muted-foreground">Total Stock</div>
                 </CardContent>
               </Card>
             </div>
