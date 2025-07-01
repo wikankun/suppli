@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Package, Search, Filter } from "lucide-react"
+import { Package, Search, Filter, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -31,6 +31,7 @@ export default function ListPage() {
   const [stockFilter, setStockFilter] = useState("all")
   const [sortBy, setSortBy] = useState<"name" | "stock" | "lastOrdered" | "category">("name")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
+  const [deleteTarget, setDeleteTarget] = useState<StockItem | null>(null)
 
   useEffect(() => {
     if (!isReady) return
@@ -109,6 +110,15 @@ export default function ListPage() {
   const getSortIcon = (column: typeof sortBy) => {
     if (sortBy !== column) return null
     return sortOrder === "asc" ? "↑" : "↓"
+  }
+
+  const handleDelete = async (item: StockItem) => {
+    const isConfirmed = confirm("Are you sure you want to delete this item ?")
+    if (isConfirmed) {
+        await stockDB.deleteItem(item.id)
+        setItems((prev) => prev.filter((i) => i.id !== item.id))
+        setDeleteTarget(null)
+    }
   }
 
   if (!isReady) {
@@ -226,6 +236,7 @@ export default function ListPage() {
                         </div>
                         <div className="flex justify-between items-center">
                           <Badge variant="outline">{item.category}</Badge>
+                          <Trash2 className="cursor-pointer" onClick={() => handleDelete(item)}></Trash2>
                         </div>
                       </div>
                     ))}
@@ -271,6 +282,9 @@ export default function ListPage() {
                             <TableCell>{formatDate(item.lastOrdered)}</TableCell>
                             <TableCell>
                               <Badge variant="outline">{item.category}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Trash2 className="cursor-pointer" onClick={() => handleDelete(item)}></Trash2>
                             </TableCell>
                           </TableRow>
                         ))}

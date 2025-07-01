@@ -64,6 +64,12 @@ class StockDatabase {
     return id
   }
 
+  async deleteItem(id: string) {
+    const transaction = this.db!.transaction(["items"], "readwrite")
+    const store = transaction.objectStore("items")
+    await store.delete(id)
+  }
+
   async updateStock(id: string, newStock: number, action: "increase" | "decrease" | "set"): Promise<void> {
     const transaction = this.db!.transaction(["items"], "readwrite")
     const store = transaction.objectStore("items")
