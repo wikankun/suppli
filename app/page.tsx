@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useMemo } from "react"
-import { Search, Plus, Minus, Package, Clock, Tag, History } from "lucide-react"
+import { Search, Plus, Minus, Package, Clock, Tag, History, DeleteIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -131,6 +131,10 @@ export default function HomePage() {
     )
   }
 
+  const handleClear = () => {
+    setSearchQuery("");
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-6">
       <Navigation />
@@ -147,13 +151,23 @@ export default function HomePage() {
           {/* Search Form */}
           <form onSubmit={handleSearch} className="space-y-4">
             <div className="relative">
-              <Search className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
+              <Search className="absolute top-0 left-4 h-full w-5 text-muted-foreground" />
               <Input
                 placeholder="Search or add items..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 h-12 text-md"
+                className="pr-12 pl-12 h-12 text-md"
               />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleClear}
+                  className="absolute top-0 right-0 h-full w-12 text-muted-foreground"
+                >
+                  <DeleteIcon className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </form>
 
