@@ -297,7 +297,7 @@ export default function HomePage() {
               <CardContent className="space-y-6">
                 {/* Stock Update Form */}
                 <div className="space-y-4">
-                  <h3 className="font-medium text-md">Update Stock</h3>
+                  {/* <h3 className="font-medium text-md">Update Stock</h3> */}
                   <div className="flex items-center space-x-4">
                     <Button
                       variant="outline"

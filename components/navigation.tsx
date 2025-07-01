@@ -40,7 +40,7 @@ export function Navigation() {
         <div className="w-[40px] md:hidden" />
   
         {/* App Title (mobile on the left now) */}
-        <div className="font-bold text-lg text-center flex-1 md:hidden">Suppli</div>
+        <div className="font-bold text-2xl text-center flex-1 md:hidden">Suppli</div>
 
         {/* Desktop title stays centered */}
         {/* <div className="hidden md:block font-bold text-lg">Suppli</div> */}
