@@ -160,6 +160,7 @@ export default function HomePage() {
               />
               {searchQuery && (
                 <Button
+                  type="button"
                   variant="ghost"
                   size="icon"
                   onClick={handleClear}
