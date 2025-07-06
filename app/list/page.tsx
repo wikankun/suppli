@@ -12,8 +12,17 @@ import { useDatabase } from "@/contexts/database-context"
 import { stockDB } from "@/lib/database"
 import { formatDate } from "@/lib/utils"
 import { categories } from "@/lib/constants"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
 
 interface StockItem {
   id: string
@@ -117,9 +126,10 @@ export default function ListPage() {
   const handleDelete = async () => {
     // const isConfirmed = confirm("Are you sure you want to delete this item ?")
     if (deleteTarget) {
-        await stockDB.deleteItem(deleteTarget.id)
-        setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id))
-        setDeleteTarget(null)
+      await stockDB.deleteItem(deleteTarget.id)
+      setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      toast.success("Item deleted")
     }
   }
 
@@ -139,26 +149,27 @@ export default function ListPage() {
       <Navigation />
 
       {/* Delete dialog */}
-      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <DialogContent onOpenAutoFocus={(e: Event) => e.preventDefault()}>
-          <DialogHeader>
-            <DialogTitle>Delete Item</DialogTitle>
-            <DialogDescription>
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent
+          onOpenAutoFocus={(e: Event) => e.preventDefault()}
+          className="rounded-lg border p-6 w-full max-w-[calc(100%-2rem)] sm:max-w-lg"
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Item</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
               Are you sure you want to delete "{deleteTarget?.name}"? <br/>This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-row gap-2">
-            <Button className="flex-1 w-full" variant="destructive" onClick={handleDelete}>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>
               Delete
-            </Button>
-            <DialogClose className="flex-1" asChild>
-              <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-                Cancel
-              </Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="container mx-auto p-4 max-w-4xl">
         <div className="space-y-6">
