@@ -9,6 +9,7 @@ import { Navigation } from "@/components/navigation"
 import { useDatabase } from "@/contexts/database-context"
 import { stockDB } from "@/lib/database"
 import { Input } from "@/components/ui/input"
+import { toast } from "sonner"
 
 export default function SyncPage() {
   const { isReady } = useDatabase()
@@ -16,7 +17,6 @@ export default function SyncPage() {
   const [importData, setImportData] = useState("")
   // const [qrCodeUrl, setQrCodeUrl] = useState("")
   const [copied, setCopied] = useState(false)
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
   const generateExportData = async () => {
     try {
@@ -27,24 +27,24 @@ export default function SyncPage() {
       // const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(data)}`
       // setQrCodeUrl(qrUrl)
 
-      setMessage({ type: "success", text: "Export data generated successfully!" })
+      toast.success("Export data generated successfully!")
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to export data" })
+      toast.error("Failed to export data")
     }
   }
 
   const handleImport = async () => {
     if (!importData.trim()) {
-      setMessage({ type: "error", text: "Please enter data to import" })
+      toast.error("Please enter data to import")
       return
     }
 
     try {
       await stockDB.importData(importData)
-      setMessage({ type: "success", text: "Data imported successfully!" })
+      toast.success("Data imported successfully!")
       setImportData("")
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to import data. Please check the format." })
+      toast.error("Failed to import data. Please check the format")
     }
   }
 
@@ -54,7 +54,7 @@ export default function SyncPage() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to copy to clipboard" })
+      toast.error("Failed to copy to clipboard")
     }
   }
 
@@ -69,13 +69,6 @@ export default function SyncPage() {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
-
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => setMessage(null), 5000)
-      return () => clearTimeout(timer)
-    }
-  }, [message])
 
   if (!isReady) {
     return (
@@ -100,14 +93,6 @@ export default function SyncPage() {
               Export and import your inventory data for backup or sharing
             </p>
           </div>
-
-          {message && (
-            <Alert className={message.type === "error" ? "border-red-500" : "border-green-500"}>
-              <AlertDescription className={message.type === "error" ? "text-red-700" : "text-green-700"}>
-                {message.text}
-              </AlertDescription>
-            </Alert>
-          )}
 
           {/* Export Section */}
           <Card>

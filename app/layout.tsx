@@ -4,6 +4,7 @@ import "./globals.css"
 import { Inter } from "next/font/google"
 import { DatabaseProvider } from "@/contexts/database-context"
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Toaster } from "sonner"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        <Toaster position="top-right" richColors></Toaster>
         <DatabaseProvider>{children}</DatabaseProvider>
         <SpeedInsights />
       </body>
