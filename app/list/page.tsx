@@ -12,6 +12,8 @@ import { useDatabase } from "@/contexts/database-context"
 import { stockDB } from "@/lib/database"
 import { formatDate } from "@/lib/utils"
 import { categories } from "@/lib/constants"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 
 interface StockItem {
   id: string
@@ -112,11 +114,11 @@ export default function ListPage() {
     return sortOrder === "asc" ? "↑" : "↓"
   }
 
-  const handleDelete = async (item: StockItem) => {
-    const isConfirmed = confirm("Are you sure you want to delete this item ?")
-    if (isConfirmed) {
-        await stockDB.deleteItem(item.id)
-        setItems((prev) => prev.filter((i) => i.id !== item.id))
+  const handleDelete = async () => {
+    // const isConfirmed = confirm("Are you sure you want to delete this item ?")
+    if (deleteTarget) {
+        await stockDB.deleteItem(deleteTarget.id)
+        setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id))
         setDeleteTarget(null)
     }
   }
@@ -135,6 +137,28 @@ export default function ListPage() {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-6">
       <Navigation />
+
+      {/* Delete dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <DialogContent onOpenAutoFocus={(e: Event) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Delete Item</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{deleteTarget?.name}"? <br/>This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row gap-2">
+            <Button className="flex-1 w-full" variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+            <DialogClose className="flex-1" asChild>
+              <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+                Cancel
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="container mx-auto p-4 max-w-4xl">
         <div className="space-y-6">
@@ -236,7 +260,7 @@ export default function ListPage() {
                         </div>
                         <div className="flex justify-between items-center">
                           <Badge variant="outline">{item.category}</Badge>
-                          <Trash2 className="cursor-pointer" onClick={() => handleDelete(item)}></Trash2>
+                          <Trash2 className="cursor-pointer" onClick={() => setDeleteTarget(item)}></Trash2>
                         </div>
                       </div>
                     ))}
@@ -284,7 +308,7 @@ export default function ListPage() {
                               <Badge variant="outline">{item.category}</Badge>
                             </TableCell>
                             <TableCell>
-                              <Trash2 className="cursor-pointer" onClick={() => handleDelete(item)}></Trash2>
+                              <Trash2 className="cursor-pointer" onClick={() => setDeleteTarget(item)}></Trash2>
                             </TableCell>
                           </TableRow>
                         ))}
