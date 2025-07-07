@@ -9,39 +9,14 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Navigation } from "@/components/navigation"
 import { useDatabase } from "@/contexts/database-context"
-import { stockDB } from "@/lib/database"
+import { stockDB, StockItem, StockHistory, Category } from "@/lib/database"
 import { formatDate } from "@/lib/utils"
-import { categories } from "@/lib/constants"
-
-interface StockItem {
-  id: string
-  name: string
-  stock: number
-  lastOrdered: string
-  category: string
-  history: StockHistory[]
-}
-
-interface StockHistory {
-  date: string
-  change: number
-  previousStock: number
-  newStock: number
-  action: "increase" | "decrease" | "set"
-}
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 
 export default function HomePage() {
   const { isReady } = useDatabase()
@@ -55,6 +30,9 @@ export default function HomePage() {
     stock: 0,
     category: "",
   })
+  const [categories, setCategories] = useState<Category[]>([])
+  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false)
+  const [categoryInputValue, setCategoryInputValue] = useState("")
 
   // Search functionality
   useEffect(() => {
@@ -62,6 +40,11 @@ export default function HomePage() {
       setSearchResults([])
       setSelectedItem(null)
       return
+    }
+
+    if (isReady && categories.length === 0) {
+      console.log("Invoked")
+      handleCategories()
     }
 
     const searchItems = async () => {
@@ -120,6 +103,24 @@ export default function HomePage() {
     return searchResults.slice(0, 5)
   }, [searchResults])
 
+  const handleCategories = async () => {
+    const categoriesInit = await stockDB.getAllCategories()
+    setCategories(categoriesInit)
+  }
+
+  const handleClear = () => {
+    setSearchQuery("");
+  };
+
+  const handleCategorySelect = async (value: string) => {
+    if (!categories.find((c) => c.name === value)) {
+      setCategories((prev) => [...prev, { name: value }])
+      await stockDB.addCategory({ name: value })
+    }
+    setNewItem((prev) => ({ ...prev, category: value }))
+    setCategoryPopoverOpen(false)
+  }
+
   if (!isReady) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -130,10 +131,6 @@ export default function HomePage() {
       </div>
     )
   }
-
-  const handleClear = () => {
-    setSearchQuery("");
-  };
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-6">
@@ -223,7 +220,7 @@ export default function HomePage() {
                       Add "{searchQuery.substring(0, 20)}{searchQuery.length > 20 ? '...' : ''}"
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="mx-4 max-w-sm">
+                  <DialogContent className="rounded-lg border p-6 w-full max-w-[calc(100%-2rem)] sm:max-w-lg">
                     <DialogHeader>
                       <DialogTitle>Add New Item</DialogTitle>
                       <DialogDescription>Add a new item to your inventory</DialogDescription>
@@ -251,21 +248,44 @@ export default function HomePage() {
                       </div>
                       <div>
                         <Label htmlFor="category">Category</Label>
-                        <Select
-                          value={newItem.category}
-                          onValueChange={(value) => setNewItem({ ...newItem, category: value })}
-                        >
-                          <SelectTrigger className="h-12">
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" className="w-full justify-between h-12">
+                              {newItem.category || "Select category"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-full p-0">
+                            <Command>
+                              <CommandInput
+                                placeholder="Search or create category..."
+                                value={categoryInputValue}
+                                onValueChange={setCategoryInputValue}
+                              />
+                              <CommandEmpty className="w-full p-0">
+                                <Button
+                                  variant="ghost"
+                                  className="w-full"
+                                  onClick={() => {
+                                    if (categoryInputValue) handleCategorySelect(categoryInputValue)
+                                  }}
+                                >
+                                  <Plus className="h-5 w-5" /> Create "{categoryInputValue}"
+                                </Button>
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {categories.map((category) => (
+                                  <CommandItem
+                                    key={category.name}
+                                    value={category.name}
+                                    onSelect={handleCategorySelect}
+                                  >
+                                    {category.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
                     <DialogFooter className="flex-col space-y-2 sm:flex-row sm:space-y-0">

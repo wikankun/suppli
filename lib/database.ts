@@ -1,4 +1,6 @@
-interface StockItem {
+import { categories } from "./constants"
+
+export interface StockItem {
   id: string
   name: string
   stock: number
@@ -7,7 +9,7 @@ interface StockItem {
   history: StockHistory[]
 }
 
-interface StockHistory {
+export interface StockHistory {
   date: string
   change: number
   previousStock: number
@@ -15,9 +17,13 @@ interface StockHistory {
   action: "increase" | "decrease" | "set"
 }
 
+export interface Category {
+  name: string
+}
+
 class StockDatabase {
   private dbName = "StockManagementDB"
-  private version = 1
+  private version = 2
   private db: IDBDatabase | null = null
 
   async init(): Promise<void> {
@@ -37,6 +43,14 @@ class StockDatabase {
           const store = db.createObjectStore("items", { keyPath: "id" })
           store.createIndex("name", "name", { unique: false })
           store.createIndex("category", "category", { unique: false })
+        }
+
+        if (!db.objectStoreNames.contains("categories")) {
+          const store = db.createObjectStore("categories", { keyPath: "name" })
+          store.createIndex("name", "name", { unique: false })
+          categories.forEach(async category => {
+            await store.add({name: category})
+          });
         }
       }
     })
@@ -126,6 +140,23 @@ class StockDatabase {
     return new Promise((resolve, reject) => {
       const request = store.get(id)
       request.onsuccess = () => resolve(request.result || null)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async addCategory(category: Category): Promise<string> {
+    const transaction = this.db!.transaction(["categories"], "readwrite")
+    const store = transaction.objectStore("categories")
+    await store.add(category)
+    return category.name
+  }
+
+  async getAllCategories(): Promise<Category[]> {
+    const transaction = this.db!.transaction(["categories"], "readonly")
+    const store = transaction.objectStore("categories")
+    return new Promise((resolve, reject) => {
+      const request = store.getAll()
+      request.onsuccess = () => resolve(request.result)
       request.onerror = () => reject(request.error)
     })
   }
