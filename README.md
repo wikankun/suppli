@@ -23,7 +23,7 @@ Suppli helps you and your family keep track of essential household items—like 
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/yourusername/suppli.git
+git clone https://github.com/wikankun/suppli.git
 cd suppli
 ```
 
