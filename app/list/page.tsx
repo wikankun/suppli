@@ -74,10 +74,10 @@ export default function ListPage() {
 
     if (stockFilter !== "all") {
       if (stockFilter === "inStock") {
-        filtered = filtered.filter((item) => item.stock > 3)
+        filtered = filtered.filter((item) => item.stock > 1)
       }
       if (stockFilter === "lowStock") {
-        filtered = filtered.filter((item) => item.stock > 0 && item.stock <= 3)
+        filtered = filtered.filter((item) => item.stock > 0 && item.stock <= 1)
       }
       if (stockFilter === "outOfStock") {
         filtered = filtered.filter((item) => item.stock === 0)
