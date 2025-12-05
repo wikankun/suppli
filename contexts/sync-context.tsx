@@ -244,7 +244,7 @@ export function SimpleSyncProvider({ children }: SimpleSyncProviderProps) {
     }
   }, [isOnline]);
 
-  // Sync now - upload local data
+  // Sync now - intelligent sync (check remote first, then decide upload/download)
   const syncNow = useCallback(async () => {
     if (!isConfigured || !syncToken || !blobFilename) {
       toast.error('Sync not configured');
@@ -259,44 +259,113 @@ export function SimpleSyncProvider({ children }: SimpleSyncProviderProps) {
     setSyncInProgress(true);
 
     try {
-      // Get all data
-      const items = await stockDB.getAllItems();
-      const categories = await stockDB.getAllCategories();
-
-      // Create sync data
-      const syncData = SimpleSyncService.createSyncData(
-        items,
-        categories,
-        'current-device'
-      );
-
-      // Upload to API
-      const response = await fetch('/api/sync/upload', {
+      // Step 1: Check remote sync status first
+      const statusResponse = await fetch('/api/sync/download', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           blobFilename,
-          items: syncData.items,
-          categories: syncData.categories,
-          deviceId: 'current-device',
           syncToken,
         }),
       });
 
-      const result = await response.json();
+      const statusResult = await statusResponse.json();
 
-      if (result.success) {
+      if (!statusResult.success) {
+        toast.error('Failed to check remote sync status');
+        return;
+      }
+
+      const remoteLastSyncTime = statusResult.data?.lastModified || 0;
+      const localLastSyncTime = lastSync || 0;
+
+      // Step 2: Get local data timestamp
+      const items = await stockDB.getAllItems();
+      const categories = await stockDB.getAllCategories();
+      const allDates = items.flatMap(item => item.history).map(i => new Date(i.date).getTime());
+      const localDataTimestamp = allDates.length > 0 ? Math.max(...allDates) : 0;
+
+      // Step 3: Decide sync direction
+      let shouldDownload = false;
+      let shouldUpload = false;
+
+      if (remoteLastSyncTime > localLastSyncTime && remoteLastSyncTime > localDataTimestamp) {
+        // Remote is newer, download
+        shouldDownload = true;
+        toast.info('Downloading newer data from remote...');
+      } else if (localDataTimestamp > remoteLastSyncTime) {
+        // Local is newer, upload
+        shouldUpload = true;
+        toast.info('Uploading local changes...');
+      } else {
+        // Both are in sync, no action needed
+        toast.info('Everything is already in sync');
+        return;
+      }
+
+      // Step 4: Execute sync action
+      if (shouldDownload) {
+        // Download and apply remote data
+        await stockDB.applySyncData({
+          version: '1.0.0',
+          deviceId: statusResult.data.deviceId,
+          timestamp: statusResult.data.lastModified,
+          items: statusResult.data.items,
+          categories: statusResult.data.categories,
+          metadata: {
+            lastSyncId: syncToken,
+            checksum: '',
+            compressed: false,
+            deviceId: statusResult.data.deviceId,
+            deviceName: 'Remote Device',
+          },
+        });
+
         // Update last sync time
         const now = Date.now();
         localStorage.setItem('suppli_last_sync', now.toString());
         setLastSync(now);
         setRemoteLastSync(now);
 
-        toast.success('Data synced successfully');
-      } else {
-        toast.error(result.error || 'Sync failed');
+        toast.success('Data downloaded and synced successfully');
+      } else if (shouldUpload) {
+        // Create sync data
+        const syncData = SimpleSyncService.createSyncData(
+          items,
+          categories,
+          'current-device'
+        );
+
+        // Upload to API
+        const uploadResponse = await fetch('/api/sync/upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            blobFilename,
+            items: syncData.items,
+            categories: syncData.categories,
+            deviceId: 'current-device',
+            syncToken,
+          }),
+        });
+
+        const uploadResult = await uploadResponse.json();
+
+        if (uploadResult.success) {
+          // Update last sync time
+          const now = Date.now();
+          localStorage.setItem('suppli_last_sync', now.toString());
+          setLastSync(now);
+          setRemoteLastSync(now);
+
+          toast.success('Data uploaded and synced successfully');
+        } else {
+          toast.error(uploadResult.error || 'Upload failed');
+        }
       }
     } catch (error) {
       console.error('Sync error:', error);
@@ -304,7 +373,7 @@ export function SimpleSyncProvider({ children }: SimpleSyncProviderProps) {
     } finally {
       setSyncInProgress(false);
     }
-  }, [isConfigured, syncToken, blobFilename, isOnline]);
+  }, [isConfigured, syncToken, blobFilename, isOnline, lastSync]);
 
   // Unsync - delete sync config and optionally delete blob
   const unSync = useCallback(async () => {

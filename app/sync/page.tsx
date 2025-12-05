@@ -11,6 +11,7 @@ import { useDatabase } from "@/contexts/database-context"
 import { useSimpleSync } from "@/contexts/sync-context"
 import { SimpleQR } from "@/components/sync/simple-qr"
 import { stockDB } from "@/lib/database"
+import { formatLastSync } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 
@@ -94,12 +95,6 @@ export default function SyncPage() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-  }
-
-  const formatLastSync = (timestamp?: number) => {
-    if (!timestamp) return "Never"
-    const date = new Date(timestamp)
-    return date.toLocaleString()
   }
 
   if (!isReady) {
@@ -237,7 +232,7 @@ export default function SyncPage() {
                           Generate a sync token to enable synchronization across devices
                         </p>
                       </div>
-                      <SimpleQR mode="join" />
+                      <SimpleQR mode="generate" />
                     </div>
                   )}
                 </CardContent>
