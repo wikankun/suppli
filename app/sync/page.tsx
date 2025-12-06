@@ -1,35 +1,54 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Download, Upload, Copy, Check } from "lucide-react"
+import { useState } from "react"
+import { Download, Upload, Copy, Check, AlertCircle, Unlink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Navigation } from "@/components/navigation"
 import { useDatabase } from "@/contexts/database-context"
+import { useSimpleSync } from "@/contexts/sync-context"
+import { SimpleQR } from "@/components/sync/simple-qr"
 import { stockDB } from "@/lib/database"
+import { formatLastSync } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 
 export default function SyncPage() {
   const { isReady } = useDatabase()
+  const {
+    isConfigured,
+    syncToken,
+    lastSync,
+    remoteLastSync,
+    syncInProgress,
+    syncNow,
+    unSync,
+  } = useSimpleSync()
+
   const [exportData, setExportData] = useState("")
   const [importData, setImportData] = useState("")
-  // const [qrCodeUrl, setQrCodeUrl] = useState("")
   const [copied, setCopied] = useState(false)
 
+  // Legacy export/import functionality
   const generateExportData = async () => {
     try {
       const data = await stockDB.exportData()
       setExportData(data)
-
-      // Generate QR code URL using a free QR code API
-      // const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(data)}`
-      // setQrCodeUrl(qrUrl)
-
       toast.success("Export data generated successfully!")
     } catch (error) {
       toast.error("Failed to export data")
+    }
+  }
+
+  const generateFullExportData = async () => {
+    try {
+      const data = await stockDB.exportFullData()
+      setExportData(data)
+      toast.success("Full export data generated successfully!")
+    } catch (error) {
+      toast.error("Failed to generate full export")
     }
   }
 
@@ -40,11 +59,19 @@ export default function SyncPage() {
     }
 
     try {
-      await stockDB.importData(importData)
+      // Try full import first (with sync info)
+      await stockDB.importFullData(importData)
       toast.success("Data imported successfully!")
       setImportData("")
     } catch (error) {
-      toast.error("Failed to import data. Please check the format")
+      try {
+        // Fallback to legacy import
+        await stockDB.importData(importData)
+        toast.success("Data imported successfully!")
+        setImportData("")
+      } catch (legacyError) {
+        toast.error("Failed to import data. Please check the format")
+      }
     }
   }
 
@@ -90,102 +117,211 @@ export default function SyncPage() {
           <div className="text-center">
             <h1 className="text-xl md:text-2xl font-bold mb-2">Data Sync</h1>
             <p className="text-muted-foreground text-sm md:text-base px-4">
-              Export and import your inventory data for backup or sharing
+              Simple and secure sync using a single sync token
             </p>
           </div>
 
-          {/* Export Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-lg">
-                <Download className="h-5 w-5" />
-                <span>Export Data</span>
-              </CardTitle>
-              <CardDescription className="text-sm">
-                Generate a backup of your inventory data that can be shared via code
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Button onClick={generateExportData} className="w-full h-12" size="lg">
-                Generate Export Data
-              </Button>
+          <Tabs defaultValue="auto-sync" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="auto-sync">Auto Sync</TabsTrigger>
+              <TabsTrigger value="manual">Manual Sync</TabsTrigger>
+            </TabsList>
 
-              {exportData && (
-                <div className="space-y-6">
-                  {/* QR Code */}
-                  {/* {qrCodeUrl && (
-                    <div className="text-center">
-                      <h3 className="font-medium mb-4 text-lg">QR Code</h3>
-                      <div className="inline-block p-4 bg-white rounded-lg border">
-                        <img
-                          src={qrCodeUrl || "/placeholder.svg"}
-                          alt="QR Code"
-                          className="w-48 h-48 md:w-64 md:h-64 mx-auto"
-                        />
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-4 px-4">
-                        Scan this QR code to import data on another device
-                      </p>
+            {/* Auto Sync Tab */}
+            <TabsContent value="auto-sync" className="space-y-6">
+              {/* Sync Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Sync Status</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Status</span>
+                    <div className="flex items-center gap-2">
+                      {isConfigured ? (
+                        <>
+                          <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                          <span className="text-sm text-green-600">Configured</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="h-2 w-2 rounded-full bg-gray-400"></div>
+                          <span className="text-sm text-gray-600">Not Configured</span>
+                        </>
+                      )}
                     </div>
-                  )} */}
+                  </div>
 
-                  {/* Export Data Text */}
+                  {isConfigured && (
+                    <>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex items-center gap-2">
+                          <AlertCircle className="h-3 w-3" />
+                          Sync Token
+                        </span>
+                        <span className="text-muted-foreground font-mono text-xs">
+                          {syncToken}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex items-center gap-2">
+                          <AlertCircle className="h-3 w-3" />
+                          Last Sync
+                        </span>
+                        <span className="text-muted-foreground">
+                          {formatLastSync(lastSync)}
+                        </span>
+                      </div>
+                      {remoteLastSync && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="flex items-center gap-2">
+                            <AlertCircle className="h-3 w-3" />
+                            Remote Sync
+                          </span>
+                          <span className="text-muted-foreground">
+                            {formatLastSync(remoteLastSync)}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Sync Controls */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Sync Controls</CardTitle>
+                  <CardDescription>
+                    {isConfigured
+                      ? "Manage your sync settings"
+                      : "Configure sync to access your inventory across multiple devices"
+                    }
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isConfigured ? (
+                    <div className="space-y-3">
+                      <div className="flex flex-col gap-3">
+                        <Button
+                          onClick={syncNow}
+                          disabled={syncInProgress}
+                          className="w-full"
+                        >
+                          {syncInProgress ? 'Syncing...' : 'Sync Now'}
+                        </Button>
+                        <SimpleQR mode="generate">
+                            Add Another Device
+                        </SimpleQR>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={unSync}
+                        className="w-full"
+                      >
+                        <Unlink className="h-4 w-4" />
+                        Stop Syncing
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center space-y-4">
+                      <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
+                      <div>
+                        <h3 className="font-medium">Auto Sync Not Set Up</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Generate a sync token to enable synchronization across devices
+                        </p>
+                      </div>
+                      <SimpleQR mode="generate" />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Manual Sync Tab */}
+            <TabsContent value="manual" className="space-y-6">
+              {/* Export Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-lg">
+                    <Download className="h-5 w-5" />
+                    <span>Export Data</span>
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    Generate a backup of your inventory data for manual sharing
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Button onClick={generateExportData} variant="outline" className="h-10">
+                      Generate Basic Export
+                    </Button>
+                    <Button onClick={generateFullExportData} variant="outline" className="h-10">
+                      Generate Full Export
+                    </Button>
+                  </div>
+
+                  {exportData && (
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
+                        <h3 className="font-medium">Export Code</h3>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm" onClick={copyToClipboard}>
+                            {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                            {copied ? "Copied!" : "Copy"}
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={downloadAsFile}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+                      <Input
+                        value={exportData}
+                        readOnly
+                        className="font-mono text-xs"
+                        placeholder="Export data will appear here..."
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Import Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-lg">
+                    <Upload className="h-5 w-5" />
+                    <span>Import Data</span>
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    Import inventory data from another device or backup
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div>
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 space-y-2 md:space-y-0">
-                      <h3 className="font-medium text-lg">Export Code</h3>
-                      <div className="flex space-x-2">
-                        <Button variant="outline" size="sm" onClick={copyToClipboard} className="flex-1 md:flex-none">
-                          {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                          {copied ? "Copied!" : "Copy"}
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={downloadAsFile} className="flex-1 md:flex-none">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
-                      </div>
-                    </div>
+                    <h3 className="font-medium mb-3">Import Code</h3>
                     <Input
-                      value={exportData}
-                      readOnly
+                      value={importData}
+                      onChange={(e) => setImportData(e.target.value)}
                       className="font-mono text-xs"
-                      placeholder="Export data will appear here..."
+                      placeholder="Paste your export data here..."
                     />
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Import Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-lg">
-                <Upload className="h-5 w-5" />
-                <span>Import Data</span>
-              </CardTitle>
-              <CardDescription className="text-sm">Import inventory data from another device or backup</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-medium mb-3">Import Code</h3>
-                <Input
-                  value={importData}
-                  onChange={(e) => setImportData(e.target.value)}
-                  className="font-mono text-xs"
-                  placeholder="Paste your export data here..."
-                />
-              </div>
-              <Button onClick={handleImport} className="w-full h-12" size="lg" disabled={!importData.trim()}>
-                Import Data
-              </Button>
-              <Alert>
-                <AlertDescription className="text-sm">
-                  <strong>Warning:</strong> Importing data will merge with your existing inventory. Items with the same
-                  ID will be overwritten.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
+                  <Button onClick={handleImport} className="w-full h-10" disabled={!importData.trim()}>
+                    Import Data
+                  </Button>
+                  <Alert>
+                    <AlertDescription className="text-sm">
+                      <strong>Warning:</strong> Importing data will merge with your existing inventory. Items with the same
+                      ID will be overwritten.
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
 
           {/* Instructions */}
           <Card>
@@ -194,21 +330,29 @@ export default function SyncPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <h3 className="font-medium mb-3">To backup your data:</h3>
+                <h3 className="font-medium mb-3">Auto Sync (Recommended):</h3>
                 <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground pl-2">
-                  <li>Click "Generate Code" to generate backup code</li>
-                  <li>Copy the code</li>
-                  <li>Store it safely for future use</li>
+                  <li>On your first device, click "Generate Sync Token"</li>
+                  <li>Copy the token or scan the QR code</li>
+                  <li>On other devices, click "Add Another Device" and enter the token</li>
+                  <li>Click "Sync Now" to sync data between devices</li>
+                  <li>All data is encrypted and stored securely</li>
                 </ol>
               </div>
               <div>
-                <h3 className="font-medium mb-3">To sync between devices:</h3>
+                <h3 className="font-medium mb-3">Manual Sync:</h3>
                 <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground pl-2">
-                  <li>Generate code on your source device</li>
-                  <li>Copy the code</li>
+                  <li>Generate an export code on your source device</li>
+                  <li>Copy the code or download as file</li>
                   <li>On the target device, paste the code in the import section</li>
                   <li>Click "Import Data" to sync your inventory</li>
                 </ol>
+              </div>
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs text-blue-800">
+                  <strong>Simple Sync:</strong> Uses a single sync token and encrypted blob storage.
+                  Multiple devices can sync using the same token. To stop syncing, just clear the sync configuration.
+                </p>
               </div>
             </CardContent>
           </Card>

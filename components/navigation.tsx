@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, List, QrCode, Menu } from "lucide-react";
+import { Home, List, QrCode, Menu, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -11,9 +11,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useSimpleSync } from "@/contexts/sync-context";
 
 export function Navigation() {
   const pathname = usePathname();
+  const { isConfigured, syncInProgress, syncNow } = useSimpleSync();
 
   const navItems = [
     {
@@ -38,7 +40,7 @@ export function Navigation() {
       <div className="flex h-12 items-center justify-between px-4 md:justify-center md:space-x-4 md:hidden">
         {/* Left spacer to balance the burger icon on the right */}
         <div className="w-[40px] md:hidden" />
-  
+
         {/* App Title (mobile on the left now) */}
         <a href="/">
           <div className="font-bold text-2xl text-center flex-1 md:hidden">Suppli</div>
@@ -93,6 +95,19 @@ export function Navigation() {
               </Button>
             </Link>
           ))}
+          {/* Add sync button to desktop navigation */}
+          {isConfigured && (
+            <Button
+              onClick={syncNow}
+              disabled={syncInProgress}
+              size="sm"
+              variant="ghost"
+              className="flex items-center space-x-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>{syncInProgress ? 'Syncing...' : 'Sync Now'}</span>
+            </Button>
+          )}
         </div>
       </div>
     </nav>

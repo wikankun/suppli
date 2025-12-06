@@ -6,5 +6,29 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString("en-ID", {day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false})
+  return new Date(dateString).toLocaleDateString("en-UK", {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false,
+  })
+}
+
+export function formatLastSync(timestamp?: number) {
+  if (!timestamp) return "Never"
+  const date = new Date(timestamp)
+  return date.toLocaleString("en-UK", {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false,
+  })
 }
